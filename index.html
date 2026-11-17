@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="最近通话">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="最近通话">
+  <meta name="description" content="iOS 26 风格电话通话记录模拟器，可在手机网页上添加、编辑和管理模拟通话记录">
+  <title>最近通话 · Liquid Glass V6</title>
+  <style>
+    :root {color-scheme:light;--blue:#007aff;--red:#ff393e;--muted:#939396;--ink:#0d0d0f;--bg:#fff;--ui:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{margin:0;height:100%;overflow:hidden;background:#f1f1f4;font-family:var(--ui);color:var(--ink)}
+    button,input,select{font:inherit}button{cursor:pointer}svg{display:block}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+    .phone{position:relative;isolation:isolate;max-width:430px;width:100%;height:100dvh;min-height:340px;margin:auto;background:#fff;overflow:hidden}
+    .phone::before{content:"";position:absolute;left:0;right:0;top:0;height:128px;z-index:4;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.96) 5%,rgba(255,255,255,.92) 72%,rgba(255,255,255,.61) 90%,transparent 100%)}
+    .status{height:48px;padding:15px 25px 0 50px;display:flex;justify-content:space-between;align-items:flex-start;position:absolute;top:0;left:0;right:0;z-index:10;pointer-events:none}
+    .time{font-size:18px;font-weight:700;letter-spacing:-.35px;line-height:20px}
+    .signals{display:flex;align-items:center;gap:6px;padding-top:1px;color:#000}
+    .cell-signal{display:flex;gap:2px;align-items:flex-end;height:16px}
+    .cell-signal i{display:block;width:4px;background:#050505;border-radius:2px 2px 0 0}.cell-signal i:nth-child(1){height:6px}.cell-signal i:nth-child(2){height:9px}.cell-signal i:nth-child(3){height:12px}.cell-signal i:nth-child(4){height:15px}
+    .wifi{width:19px;height:16px}.battery{width:28px;height:16px;background:#a9a9ad;border-radius:5px;position:relative;margin-left:1px;display:flex;align-items:center;justify-content:center;font-size:11px;line-height:1;color:white;font-weight:700}.battery::before{content:"";position:absolute;width:5px;height:7px;right:-3px;top:5px;background:#aaa;border-radius:0 3px 3px 0}.battery::after{content:"";position:absolute;width:5px;height:16px;left:0;top:0;background:#ff3b48;border-radius:5px 0 0 5px}
+    .toolbar{position:absolute;top:48px;left:0;right:0;z-index:9;height:61px;display:flex;align-items:center;justify-content:space-between;padding:0 17px;gap:7px;pointer-events:none}
+    .toolbar button,.toolbar .segmented{pointer-events:auto}
+    .glass{border:1px solid rgba(255,255,255,.98);background:rgba(255,255,255,.78);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);box-shadow:0 1px 9px rgba(30,40,60,.04),inset 0 0 1px rgba(255,255,255,.9)}
+    .edit-btn{flex:none;min-width:58px;height:44px;border-radius:28px;border:0;font-size:18px;font-weight:560;color:#111;background:rgba(255,255,255,.89)}
+    .segmented{min-width:0;height:45px;display:flex;align-items:center;border-radius:27px;padding:3px;gap:3px;white-space:nowrap}
+    .segmented button{border:0;background:transparent;color:#111;font-size:16px;font-weight:500;white-space:nowrap;padding:0 13px;height:39px;border-radius:23px}
+    .segmented button.selected{background:#ededed;box-shadow:inset 0 0 1px #ddd}
+    .more-btn{width:43px;height:43px;border-radius:50%;border:1.5px solid #ddfafd;display:grid;place-items:center;flex:none;color:#0a1014;background:rgba(251,255,255,.86);box-shadow:0 0 0 5px rgba(235,253,255,.75),0 1px 8px rgba(30,40,60,.05)}
+    .more-btn svg{width:26px;height:26px}
+    .scroll{position:absolute;inset:0 0 0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:105px 0 118px}
+    .scroll::-webkit-scrollbar{display:none}
+    .list{width:100%;min-height:100%}
+    .call{position:relative;display:flex;align-items:center;min-height:65px;padding:0 14px 0 14px;gap:8px;background:#fff;user-select:none}
+    .call::after{content:"";position:absolute;bottom:0;height:1px;left:68px;right:14px;background:#e6e6e8;transform:scaleY(.65);transform-origin:bottom}
+    .call:last-child::after{display:none}
+    .avatar{width:46px;height:46px;flex:0 0 46px;border-radius:50%;background:linear-gradient(160deg,#a7c6e1 0%,#7c88c6 100%);display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .avatar svg{width:100%;height:100%}.avatar.baby{font-size:26px;font-weight:750;color:white;letter-spacing:0}
+    .body{min-width:0;flex:1;align-self:center;padding:0 0 0 0}
+    .call-name{font-size:17px;line-height:1.28;font-weight:650;letter-spacing:-.35px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#08090b}
+    .call-name.missed{color:var(--red)}
+    .call-name.has-transfer{font-size:15px;letter-spacing:-.45px;font-variant-numeric:tabular-nums}
+    @media(max-width:365px){.call-name.has-transfer{font-size:12.5px;letter-spacing:-.55px}}
+    .random-config{border:1px solid #dfe7f4;background:linear-gradient(130deg,#f5f9ff,#f7f7fb);border-radius:16px;padding:11px 12px 10px;margin:0 0 13px}
+    .random-head{display:flex;align-items:center;justify-content:space-between;gap:9px;font-size:14px;font-weight:650;color:#242d3c}
+    .random-head label{display:flex;align-items:center;gap:8px;cursor:pointer;min-width:0}
+    .random-head input{width:18px;height:18px;accent-color:#007aff;flex:0 0 18px}
+    .random-fields{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin-top:10px}
+    .random-fields>div{min-width:0}.random-fields label{display:block;color:#717987;font-size:11px;margin:0 0 5px 3px}
+    .random-fields input{font-size:12px;padding:0 7px;min-width:0;height:42px}
+    .random-caption{margin:8px 1px 0;color:#7c8797;font-size:11px;line-height:1.5}
+    @media(max-width:365px){.random-fields{grid-template-columns:1fr}.random-fields input{font-size:14px}}
+    .meta{font-size:13px;line-height:1.45;margin-top:1px;color:var(--muted);display:flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden}
+    .direction{flex:none;width:12px;height:12px;stroke:#96969a;stroke-width:1.85;fill:none;stroke-linecap:round;stroke-linejoin:round}
+    .sim{flex:none;background:#a7a7a9;color:#fff;border-radius:2px;padding:0px 2px;font-size:10px;font-weight:700;line-height:14px;height:14px}
+    .region{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+    .date{font-size:14px;color:#919195;white-space:nowrap;text-align:right;margin-right:1px;flex:none;font-variant-numeric:tabular-nums;letter-spacing:-.2px}
+    .info{width:40px;height:40px;border:0;border-radius:50%;background:#f4f4f5;color:#0089ff;display:grid;place-items:center;flex:0 0 40px;margin-left:1px}
+    .info svg{width:22px;height:22px}.info:active{background:#e4effb}
+    .delete-button{flex:0 0 25px;width:25px;height:25px;border:0;border-radius:50%;color:white;background:#ff4248;display:none;place-items:center;font-size:25px;font-weight:600;line-height:1}
+    .editing .delete-button{display:grid}.editing .call{padding-left:7px}.editing .date{display:none}
+    .dock{position:absolute;z-index:8;left:19px;right:19px;bottom:max(17px,env(safe-area-inset-bottom) + 9px);height:65px;display:flex;padding:4px 5px;background:rgba(253,253,255,.78);border:1px solid rgba(255,255,255,.99);border-radius:36px;box-shadow:0 3px 24px rgba(41,50,65,.07),inset 0 1px 2px #fff;-webkit-backdrop-filter:blur(25px) saturate(170%);backdrop-filter:blur(25px) saturate(170%)}
+    .tab{flex:1;min-width:0;border:0;background:none;border-radius:36px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;color:#131313;padding:2px 0 3px;position:relative}
+    .tab.active{background:rgba(226,226,226,.78);color:var(--blue)}
+    .tab-icon{height:27px;display:grid;place-items:center}.tab-icon svg{width:28px;height:28px}
+    .tab-name{font-size:11px;line-height:15px;font-weight:550;white-space:nowrap;letter-spacing:-.35px}.tab.active .tab-name{font-weight:700}
+    .bubble{position:absolute;right:6px;top:-3px;color:#fff;background:#ff3a46;border-radius:18px;min-width:23px;height:22px;padding:0 5px;display:grid;place-items:center;font-size:13px;line-height:1}
+    .homebar{position:absolute;z-index:9;bottom:6px;left:50%;transform:translateX(-50%);width:106px;height:4px;background:#171717;border-radius:8px;display:none}
+    .blank{padding:85px 25px 25px;text-align:center;color:#8e8e93;font-size:15px}.blank strong{display:block;color:#121216;font-size:23px;margin:12px auto}
+    .blank svg{width:45px;height:45px;margin:0 auto;color:#c5c5c8}
+    .page-title{font-size:29px;font-weight:740;letter-spacing:-1px;margin:5px 25px 15px}
+    .group-title{font-size:14px;font-weight:650;color:#888;padding:10px 18px 6px}
+    .searchbox{margin:5px 18px 13px;display:flex;align-items:center;gap:9px;background:#ededf1;border-radius:11px;color:#92939a;padding:9px 12px}.searchbox svg{width:17px;height:17px}.searchbox input{outline:0;border:0;background:transparent;width:100%;font-size:16px;color:#333}
+    .contact-row{display:flex;align-items:center;gap:12px;margin-left:17px;padding:11px 20px 11px 0;border-bottom:1px solid #eee;font-size:17px}.contact-row .avatar{width:42px;height:42px;flex-basis:42px}
+    .keypad-page{padding:7px 22px 0;display:flex;flex-direction:column;align-items:center}
+    .dial-number{height:69px;width:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;text-overflow:ellipsis;font-size:29px;letter-spacing:1px;font-weight:500}
+    .dial-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 25px;max-width:300px;width:100%;justify-items:center}
+    .dial-digit{width:min(100%,71px);height:71px;border:0;border-radius:50%;background:#e9e9ed;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#080808;font-size:30px;font-weight:390;line-height:31px}
+    .dial-digit small{font-size:9px;font-weight:600;letter-spacing:2px;line-height:11px}
+    .dial-actions{display:flex;align-items:center;gap:30px;margin-top:15px}.dial-action{border:0;background:none;color:var(--blue);font-size:15px}.dial-green{width:64px;height:64px;border-radius:50%;background:#34c759;display:grid;place-items:center;border:0;color:white}
+    .scrim{position:absolute;z-index:20;inset:0;background:rgba(0,0,0,.27);display:flex;align-items:flex-end;justify-content:center;animation:fade .16s ease-out}
+    .sheet{background:rgba(249,249,251,.985);border-radius:27px 27px 0 0;width:100%;max-height:min(92dvh,880px);display:flex;flex-direction:column;padding:0 17px max(20px,env(safe-area-inset-bottom) + 16px);box-shadow:0 -12px 36px rgba(20,30,45,.16);animation:raise .22s ease-out;overflow:hidden}
+    .grab{flex:none;width:37px;height:5px;border-radius:10px;background:#d5d5d8;margin:9px auto 8px}
+    .sheet-header{flex:none;display:flex;align-items:center;justify-content:space-between;min-height:45px}
+    .sheet-header h2{font-size:19px;letter-spacing:-.4px;margin:0;font-weight:700}
+    .sheet-close{border:0;border-radius:50%;width:31px;height:31px;display:grid;place-items:center;background:#e5e5e9;color:#606068;font-size:24px;line-height:1}
+    .sheet-content{overflow:auto;-webkit-overflow-scrolling:touch;padding:9px 0 2px}
+    .hint{font-size:12px;color:#8d8d93;line-height:1.6;margin:1px 2px 13px}
+    .field{margin-bottom:11px}.field label{display:block;font-size:12px;color:#81818a;margin:0 5px 5px;font-weight:550}
+    .control{height:44px;border:1px solid #e5e5e9;border-radius:12px;background:#fff;width:100%;outline:0;padding:0 13px;color:#101014;font-size:16px}.control:focus{border-color:#8ac4ff}
+    .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field-grid .field{min-width:0}
+    .type-select{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:13px}
+    .type-select button{height:40px;border:0;background:#ececf0;border-radius:11px;font-size:14px;font-weight:600;color:#5e6067}.type-select button.on{background:#dcecff;color:#007aff}
+    .primary{height:48px;width:100%;background:#007aff;color:white;border:0;border-radius:14px;font-size:17px;font-weight:650;margin:7px 0 0}.secondary{height:43px;width:100%;border:0;background:#e7e7eb;color:#3e3e44;border-radius:13px;font-weight:600;margin-top:9px}
+    .danger{color:#ff3b43!important}.detail-center{display:flex;flex-direction:column;align-items:center;padding:11px 0 15px}.detail-center .avatar{width:68px;height:68px;flex-basis:68px}.detail-center strong{font-size:22px;margin-top:10px}.detail-center span{color:#8e8e94;font-size:14px;margin-top:4px}.detail-line{padding:11px 2px;display:flex;justify-content:space-between;gap:15px;border-bottom:1px solid #e3e3e9;font-size:14px}.detail-line span:first-child{color:#92939a}.detail-line span:last-child{text-align:right}
+    .actions-row{display:flex;gap:9px;margin-top:13px}.actions-row button{flex:1;height:44px;background:#e5effe;color:var(--blue);border:0;border-radius:12px;font-weight:700}
+    .toast{position:absolute;z-index:40;bottom:114px;left:50%;transform:translateX(-50%);max-width:calc(100% - 40px);width:max-content;background:rgba(31,31,35,.83);color:#fff;padding:11px 16px;border-radius:25px;font-size:13px;backdrop-filter:blur(12px);text-align:center;box-shadow:0 5px 17px #0002;white-space:nowrap}
+    .file-input{display:none}
+    @keyframes raise{from{transform:translateY(40px);opacity:.75}to{transform:translateY(0);opacity:1}}@keyframes fade{from{opacity:0}to{opacity:1}}
+    @media(max-width:365px){.toolbar{padding:0 10px}.segmented button{padding:0 9px;font-size:14px}.call{padding-right:8px;gap:7px}.call-name{font-size:16px}.date{font-size:12px}.info{width:38px;height:38px;flex-basis:38px}.meta{font-size:12px}.dock{left:9px;right:9px}.tab-name{font-size:10px}}
+    @media(min-width:650px){body{display:grid;place-items:center;background:radial-gradient(ellipse at 30% 17%,#ebf2fb,#e9ebf1 52%,#e3e4eb)}.phone{height:min(94dvh,852px);min-height:650px;width:393px;border-radius:44px;box-shadow:0 25px 65px #24344c26,0 2px 5px #0002;border:6px solid #1f2025}.homebar{display:block}}
+    @media(prefers-reduced-motion:reduce){.scrim,.sheet{animation:none}}
+
+    /* v2: iPhone-size responsive layout and more faithful Liquid Glass */
+    .phone{background:#fff;}
+    .status{padding-top:15px}
+    .toolbar{top:48px}
+    .glass{background:rgba(255,255,255,.71);-webkit-backdrop-filter:blur(30px) saturate(175%);backdrop-filter:blur(30px) saturate(175%);box-shadow:0 2px 13px rgba(80,100,130,.045),inset 0 1px 1px rgba(255,255,255,.9)}
+    .segmented{border-radius:30px}
+    .segmented button.selected{background:rgba(232,232,233,.9)}
+    .call{min-height:65px}
+    .call-name{font-weight:650}
+    .info{background:#f3f3f5}
+    .dock{background:rgba(251,252,255,.73);-webkit-backdrop-filter:blur(32px) saturate(190%);backdrop-filter:blur(32px) saturate(190%);border-color:rgba(255,255,255,.95);box-shadow:0 4px 26px rgba(55,71,102,.08),inset 0 2px 3px rgba(255,255,255,.82)}
+    .tab:active,.more-btn:active,.edit-btn:active,.info:active{transform:scale(.97)}
+    .scrim{align-items:flex-end}
+    .sheet{max-height:min(94dvh,900px);padding:0 17px max(12px,env(safe-area-inset-bottom));background:rgba(249,249,251,.97);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px)}
+    .sheet-content{min-height:0;flex:1;overflow-y:auto;padding:9px 0 12px;overscroll-behavior:contain}
+    .sheet-footer{flex:none;padding:12px 0 max(5px,env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(249,249,251,.0),rgba(249,249,251,.98) 14%);border-top:1px solid rgba(200,201,207,.5)}
+    .sheet-footer .primary{margin:0;display:block;width:100%;height:52px;border-radius:15px;font-size:17px;font-weight:700;touch-action:manipulation}
+    .sheet-footer .primary:disabled{opacity:.65}
+    .footer-note{display:block;margin:8px 0 2px;font-size:11px;line-height:1.3;text-align:center;color:#8d8d94}
+    .field label{font-weight:650}
+    .control{appearance:none;-webkit-appearance:none;min-width:0;line-height:normal}
+    .control[type="datetime-local"]{font-size:13px;padding:0 8px}
+    .advanced{border-radius:13px;margin:5px 0 10px;overflow:hidden;background:#f0f0f3}
+    .advanced summary{height:47px;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 14px;font-size:14px;font-weight:650;color:#4e4f54;cursor:pointer;touch-action:manipulation}
+    .advanced summary::-webkit-details-marker{display:none}
+    .advanced summary::before{content:'＋';color:var(--blue);font-size:18px;margin-right:4px}
+    .advanced[open] summary::before{content:'−'}
+    .advanced summary span{font-size:11px;font-weight:400;color:#999;flex:1;text-align:right}
+    .advanced-inner{padding:3px 10px 7px;border-top:1px solid #e0e0e5}
+    .advanced-inner .field{margin-top:8px}
+    .backup-details{margin-top:10px;color:#818188;font-size:12px}
+    .backup-details summary{cursor:pointer;list-style:none;text-align:center;padding:8px 0;touch-action:manipulation}
+    .backup-details summary::-webkit-details-marker{display:none}
+    .backup-details summary::after{content:' ›';font-weight:700}
+    .backup-tools{margin-top:6px;padding-bottom:2px}
+    .backup-tools .secondary{height:40px;margin-top:7px;font-size:13px}
+    .sheet-content .hint{margin-bottom:16px}
+    #callForm .field:first-child .control{font-size:19px;letter-spacing:.4px;font-weight:560;height:51px}
+    #callForm .type-select button{touch-action:manipulation}
+    @media(min-width:650px){.phone{max-width:none;width:393px;height:min(94dvh,852px)}.sheet{max-height:90%}}
+    @media(max-height:630px){.sheet{max-height:99%}.footer-note{display:none}.sheet-footer{padding-top:6px}.sheet-header{min-height:34px}.sheet .grab{margin:5px auto}.sheet-content{padding-top:2px}}
+    @media(max-width:365px){.advanced summary span{font-size:10px}.segmented button{padding:0 7px}.toolbar{gap:4px}}
+
+    /* v3：列表区域承担全部竖向滚动。顶栏/底栏保持悬浮固定。 */
+    .scroll {
+      position:absolute;
+      top:0;right:0;bottom:0;left:0;
+      width:100%;height:100%;
+      overflow-x:hidden;
+      overflow-y:scroll;
+      -webkit-overflow-scrolling:touch;
+      overscroll-behavior-y:auto;
+      touch-action:pan-y;
+      scroll-behavior:auto;
+      padding-top:110px;
+      padding-bottom:calc(118px + env(safe-area-inset-bottom, 0px));
+    }
+    .list,.call {touch-action:pan-y;}
+    .call {user-select:auto;-webkit-user-select:auto;}
+    .blank {padding-top:155px;}
+    /* 空数据时仍保留温和的滑动反馈；有记录时自然按列表长度滚动。 */
+    .list {min-height:calc(100% + 1px);}
+    .sheet-content {touch-action:pan-y;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:auto;}
+    @media (max-height:620px) {.blank {padding-top:65px;}}
+    /* V4：可编辑模拟状态栏、批量粘贴输入及更精致的玻璃风格 */
+    .status button{pointer-events:auto;border:0;font-family:var(--ui);cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .status .time{background:transparent;color:#0b0b0c;padding:0;min-width:50px;text-align:left;font-variant-numeric:tabular-nums}
+    .status .time:active{opacity:.55}
+    .battery{isolation:isolate;overflow:visible;padding:0;flex:none}
+    .battery::after{display:none}
+    .battery-fill{position:absolute;z-index:0;top:0;bottom:0;left:0;display:block;width:17%;max-width:100%;border-radius:5px;background:#ff424a;transition:width .2s ease,background .2s ease}
+    .battery-value{position:relative;z-index:1;color:#fff;font-weight:730;font-size:11px;letter-spacing:0;font-variant-numeric:tabular-nums}
+    .battery.battery-high .battery-fill{background:#48484d}
+    .battery.battery-low .battery-fill{background:#ff414a}
+    .battery.battery-mid .battery-fill{background:#edbd31}
+    .battery.battery-charging .battery-fill{background:#2bc65b}
+    .battery:active{transform:scale(.94)}
+    .glass{background:rgba(255,255,255,.73);border-color:rgba(255,255,255,.95);box-shadow:0 1px 7px rgba(40,70,100,.07),inset 0 1px 1px rgba(255,255,255,.96)}
+    .segmented{box-shadow:0 1px 12px rgba(36,45,60,.05),inset 0 1px 1px #fff}
+    .segmented button.selected{box-shadow:0 1px 2px #0000000d,inset 0 1px 1px #fff}
+    .call{transition:background-color .1s ease}
+    .call:active{background:#f8f9fc}
+    .call-name{font-variant-numeric:tabular-nums}
+    .info{background:#f2f2f4;box-shadow:inset 0 1px 0 #fff}
+    .dock{border:1px solid rgba(255,255,255,.98);box-shadow:0 5px 22px rgba(47,62,87,.095),inset 0 1px 2px #fff}
+    .tab.active{box-shadow:inset 0 1px 2px rgba(145,150,160,.12)}
+    .sheet{background:rgba(248,249,252,.965);box-shadow:0 -18px 65px rgba(28,41,67,.16);-webkit-backdrop-filter:blur(34px) saturate(155%);backdrop-filter:blur(34px) saturate(155%)}
+    .sheet-close{font-size:24px;font-weight:350}
+    .control{box-shadow:0 1px 2px rgba(10,28,60,.02);background:#fff;transition:border-color .16s ease,box-shadow .16s ease}
+    .control:focus{border-color:rgba(0,122,255,.58);box-shadow:0 0 0 3px rgba(0,122,255,.075)}
+    .primary{background:linear-gradient(180deg,#168bff,#007aff);box-shadow:0 3px 9px rgba(0,122,255,.14)}
+    .primary:active{filter:brightness(.94)}
+    .type-select button.on{background:#e1efff;box-shadow:inset 0 0 0 1px #acd6ff}
+    .bulk-box{position:relative}
+    #callForm .field:first-child .control.bulk-input{display:block;resize:vertical;min-height:116px;max-height:224px;padding:12px 13px;font-size:16px;font-weight:510;line-height:1.55;letter-spacing:0;white-space:pre-wrap;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+    .bulk-input::placeholder{color:#afb0b7;font-weight:420;letter-spacing:0}
+    .bulk-input:focus{min-height:128px}
+    .bulk-summary{display:flex;gap:7px;align-items:center;justify-content:space-between;margin:8px 2px 5px;min-height:22px;font-size:12px;color:#80838e}
+    .bulk-summary strong{color:var(--blue);font-size:12px;font-weight:700}
+    .bulk-summary.is-error strong{color:#f0444f}
+    .bulk-summary.is-error{color:#e14955}
+    .input-tip{display:flex;gap:7px;align-items:flex-start;margin:0 3px 12px;color:#91929a;font-size:11px;line-height:1.55}
+    .input-tip svg{width:14px;height:14px;flex:none;margin-top:1px;color:#74a9ed}
+    .section-label{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:4px 4px 7px}
+    .section-label label{margin:0!important}
+    .pill-note{background:#e8f2ff;color:#1477d3;font-size:10px;line-height:18px;font-weight:650;padding:0 8px;border-radius:16px}
+    .status-entry{border:0;background:none;color:var(--blue);font-size:12px;font-weight:650;padding:6px 4px;margin:0 0 2px;display:flex;align-items:center;gap:5px}
+    .status-entry svg{width:15px;height:15px}
+    .status-preview{display:flex;justify-content:space-between;align-items:center;padding:17px 21px;border-radius:18px;background:#fff;box-shadow:0 2px 12px rgba(31,44,70,.045);margin:4px 0 17px;min-height:66px}
+    .status-preview .preview-time{font-weight:750;font-size:22px;font-variant-numeric:tabular-nums}
+    .preview-right{display:flex;align-items:center;gap:7px}
+    .preview-right .battery{pointer-events:none}
+    .status-config-group{padding:12px;border-radius:15px;background:rgba(237,238,242,.75);margin-bottom:12px}
+    .status-config-group>label{display:block;font-size:13px;font-weight:700;color:#4e5058;margin-bottom:10px}
+    .toggle-row{display:flex;align-items:center;gap:10px;justify-content:space-between;font-size:14px;color:#313138;min-height:31px;margin-bottom:7px}
+    .toggle-row input{width:18px;height:18px;accent-color:var(--blue)}
+    .battery-range{width:100%;accent-color:var(--blue);height:25px;margin:6px 0}
+    .percent-row{display:flex;align-items:center;gap:10px}
+    .percent-row .control{width:85px;height:39px;text-align:center;font-variant-numeric:tabular-nums}
+    .percent-row span{color:#777982;font-size:12px}
+    .status-settings-hint{font-size:12px;line-height:1.6;color:#92949c;margin:2px 5px 12px}
+    @media(max-width:365px){.status-preview{padding:15px}.bulk-summary{font-size:11px}.status-entry{font-size:11px}}
+
+    /* PWA: 独立窗口保留系统状态栏时，仅保留真实状态栏，避免时间/电池重复。 */
+    @media (display-mode: standalone) {
+      .status {display:none!important}
+      .toolbar {top:max(7px, env(safe-area-inset-top, 0px))}
+      .phone::before {height:calc(83px + env(safe-area-inset-top, 0px))}
+      .scroll {padding-top:calc(71px + max(7px, env(safe-area-inset-top, 0px)))}
+    }
+    /* Android Chrome 支持 fullscreen 安装模式时，保留网页自带的可设置状态栏。 */
+    @media (display-mode: fullscreen) {
+      .status {top:env(safe-area-inset-top, 0px)}
+      .toolbar {top:calc(48px + env(safe-area-inset-top, 0px))}
+      .phone::before {height:calc(128px + env(safe-area-inset-top, 0px))}
+      .scroll {padding-top:calc(110px + env(safe-area-inset-top, 0px))}
+      .dock {bottom:max(17px, calc(env(safe-area-inset-bottom, 0px) + 9px))}
+    }
+    /* iOS 主屏幕应用由系统绘制真实状态栏，不能伪造电量和时间，避免重叠。 */
+    @media (display-mode: standalone) {
+      .dock {bottom:max(17px, calc(env(safe-area-inset-bottom, 0px) + 9px))}
+    }
+
+    /* V5 · 截图风格全屏通话详情：详情页独立纵向滚动，列表滚动位置不丢失 */
+    .detail-page{position:absolute;inset:0;z-index:7;overflow:hidden;color:#fff;
+      background:
+        radial-gradient(ellipse 75% 27% at 12% 9%,rgba(243,215,249,.75),transparent 92%),
+        radial-gradient(ellipse 68% 31% at 91% 6%,rgba(183,246,246,.84),transparent 92%),
+        radial-gradient(ellipse 87% 35% at 50% 39%,rgba(176,192,216,.48),transparent 100%),
+        linear-gradient(180deg,#c9d9e2 0%,#bfc3d9 24%,#9da3c0 45%,#858aaf 64%,#535c85 83%,#28365d 100%);
+      animation: detailAppear .2s ease-out;
+    }
+    .detail-page[hidden]{display:none!important}
+    @keyframes detailAppear{from{opacity:.3;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}
+    .detail-scroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior-y:contain;scrollbar-width:none;padding:57px 16px calc(124px + env(safe-area-inset-bottom,0px))}
+    .detail-scroll::-webkit-scrollbar{display:none}
+    .phone.detail-active .toolbar{display:none!important}
+    .phone.detail-active .scroll{visibility:hidden;pointer-events:none}
+    .phone.detail-active .dock{z-index:9}
+    .phone.detail-active .status{z-index:11}
+    .detail-nav{display:flex;justify-content:space-between;align-items:center;height:51px;margin-bottom:-46px;position:relative;z-index:1}
+    .detail-back,.detail-edit{border:1px solid rgba(255,255,255,.48);background:rgba(255,255,255,.55);-webkit-backdrop-filter:blur(23px) saturate(160%);backdrop-filter:blur(23px) saturate(160%);color:#171a26;box-shadow:0 4px 16px rgba(50,51,90,.07),inset 0 1px 0 rgba(255,255,255,.7)}
+    .detail-back{width:46px;height:46px;border-radius:50%;display:grid;place-items:center}.detail-back svg{width:28px;height:28px}
+    .detail-edit{height:44px;padding:0 18px;border-radius:26px;font-size:17px;font-weight:630}
+    .detail-hero{display:flex;align-items:center;flex-direction:column;text-align:center;min-width:0;margin-top:0;margin-bottom:11px}
+    .detail-hero .avatar{height:60px;width:60px;flex:0 0 60px;box-shadow:inset 0 1px 1px #ffffff66}
+    .detail-hero-name{font-size:12px;line-height:16px;color:rgba(255,255,255,.8);margin-top:3px}
+    .detail-hero-sim{margin-top:1px;font-size:11px;color:rgba(255,255,255,.8);line-height:17px;display:flex;align-items:center;gap:6px}
+    .detail-hero-sim .sim{background:rgba(255,255,255,.57);color:#647086}
+    .detail-number{font-size:clamp(24px,7.4vw,31px);max-width:100%;font-weight:740;letter-spacing:0;font-variant-numeric:tabular-nums;line-height:1.18;margin:7px 0 8px;overflow-wrap:anywhere;text-shadow:0 1px 3px rgba(27,39,62,.1)}
+    .detail-switch{display:flex;justify-content:center;gap:0;align-items:center;border-radius:25px;padding:3px;background:rgba(78,87,111,.18);border:1px solid rgba(255,255,255,.13)}
+    .detail-switch button{border:0;border-radius:20px;background:none;color:rgba(255,255,255,.76);padding:6px 13px;font-size:14px;font-weight:570}
+    .detail-switch button.active{background:rgba(250,250,255,.19);color:#fff}
+    .detail-card{border-radius:23px;background:rgba(65,73,115,.32);-webkit-backdrop-filter:blur(28px) saturate(130%);backdrop-filter:blur(28px) saturate(130%);border:1px solid rgba(255,255,255,.07);box-shadow:inset 0 1px 1px rgba(255,255,255,.08);margin:0 0 12px;padding:0 17px;color:rgba(255,255,255,.92)}
+    .detail-card button{color:inherit}
+    .detail-call-head{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:57px;font-size:15px;line-height:1.3}
+    .detail-call-head time{font-size:13px;white-space:nowrap;color:rgba(255,255,255,.83);font-variant-numeric:tabular-nums}
+    .detail-divider{height:1px;background:rgba(255,255,255,.35);width:100%}
+    .detail-action{width:100%;border:0;background:transparent;text-align:left;padding:0;min-height:53px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:16px;font-weight:480;line-height:1.35;touch-action:manipulation}
+    .detail-action.two-lines{padding:12px 0;display:block;min-height:68px}
+    .detail-action small{display:block;font-size:15px;color:rgba(255,255,255,.83);margin-top:2px;font-weight:400;font-variant-numeric:tabular-nums}
+    .detail-chevron{font-size:26px;line-height:1;color:rgba(255,255,255,.67)}
+    .detail-card.slim .detail-action{min-height:54px}
+    .detail-phone-card .detail-action{min-height:71px}
+    .detail-nested{padding:13px 0 17px}
+    .detail-nested-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .detail-nested label{font-size:12px;color:rgba(255,255,255,.86);display:block;margin-bottom:7px}
+    .detail-nested input,.detail-nested select{width:100%;min-width:0;height:43px;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.84);border-radius:11px;color:#19253e;padding:0 8px;font-family:var(--ui);font-size:14px;outline:0}
+    .detail-nested input[type="date"]{font-size:13px}.detail-nested select{margin-top:2px}
+    .detail-advanced-meta{font-size:12px;color:rgba(255,255,255,.77);margin:8px 0 0}
+    .detail-save{height:41px;width:100%;border:1px solid rgba(255,255,255,.48)!important;border-radius:13px;background:rgba(252,252,255,.84)!important;color:#23487e!important;font-weight:730;font-size:14px;margin-top:10px}
+    .detail-note{font-size:11px;color:rgba(255,255,255,.73);margin:3px 6px 15px;line-height:1.5}
+    .detail-voicemail-empty{padding:23px 5px;text-align:center;font-size:13px;color:rgba(255,255,255,.75)}
+    .detail-page button:active{opacity:.7}
+    .detail-page button:focus-visible,.detail-page input:focus-visible{outline:2px solid #fff;outline-offset:2px}
+    @media(max-width:365px){.detail-scroll{padding-left:13px;padding-right:13px}.detail-number{font-size:25px}.detail-switch button{font-size:13px}.detail-card{padding-left:15px;padding-right:15px}}
+    @media(display-mode:standalone){.detail-scroll{padding-top:calc(env(safe-area-inset-top,0px) + 12px)}}
+    @media(display-mode:fullscreen){.detail-scroll{padding-top:calc(57px + env(safe-area-inset-top,0px))}}
+    @media(prefers-reduced-motion:reduce){.detail-page{animation:none}}
+  </style>
+</head>
+<body>
+  <main class="phone" id="phone">
+    <header class="status" aria-label="模拟手机状态栏">
+      <button class="time" type="button" id="clock" title="设置状态栏时间" aria-label="设置模拟状态栏时间">20:06</button>
+      <div class="signals" aria-hidden="true">
+        <div class="cell-signal"><i></i><i></i><i></i><i></i></div>
+        <svg class="wifi" viewBox="0 0 24 20"><path d="M2 6.5Q12 -1 22 6.5M5.2 10Q12 4.2 18.8 10M8.7 13.5Q12 10.7 15.3 13.5" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.7" fill="currentColor"/></svg>
+        <button type="button" class="battery" id="battery" title="设置电池电量" aria-label="设置模拟电量"><span class="battery-fill" id="batteryFill"></span><span class="battery-value" id="batteryValue">17</span></button>
+      </div>
+    </header>
+    <div class="toolbar" id="toolbar">
+      <button class="edit-btn glass" id="editBtn">编辑</button>
+      <div class="segmented glass" id="segmented" role="group" aria-label="筛选通话记录">
+        <button class="selected" type="button" data-filter="all">所有</button>
+        <button type="button" data-filter="missed">未接来电</button>
+      </div>
+      <button type="button" class="more-btn glass" id="generatorBtn" aria-label="生成通话记录" title="生成通话记录">
+        <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 7h18M8 14h12M11 21h6"/></svg>
+      </button>
+    </div>
+    <div class="scroll" id="scroll"><div class="list" id="content"></div></div>
+    <section class="detail-page" id="detailPage" aria-label="模拟通话详情" hidden><div class="detail-scroll" id="detailScroll"><div id="detailContent"></div></div></section>
+    <nav class="dock" id="dock" aria-label="电话 App 导航">
+      <button class="tab" data-tab="favorites" aria-label="个人收藏">
+        <span class="tab-icon"><svg viewBox="0 0 30 30" fill="currentColor"><path d="m15 1.5 4 8.85 9.7 1.08-7.25 6.49 2.02 9.55L15 22.7l-8.47 4.77 2.02-9.55L1.3 11.43 11 10.35Z"/></svg></span><span class="tab-name">个人收藏</span>
+      </button>
+      <button class="tab active" data-tab="recent" aria-label="最近通话" aria-current="page">
+        <span class="tab-icon"><svg viewBox="0 0 30 30" fill="none"><circle cx="15" cy="15" r="13.5" fill="#0087ff"/><path d="M15 6.6V15h-7.1" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="tab-name">最近通话</span>
+      </button>
+      <button class="tab" data-tab="contacts" aria-label="通讯录">
+        <span class="tab-icon"><svg viewBox="0 0 30 30"><circle cx="15" cy="15" r="13.3" fill="currentColor"/><circle cx="15" cy="11" r="5.4" fill="#fff"/><path d="M4.7 22.7c2.5-3.7 6.2-5.3 10.3-5.3s7.8 1.6 10.3 5.3c-2.4 3.6-6.2 5.5-10.3 5.5S7.2 26.3 4.7 22.7" fill="#fff"/></svg></span><span class="tab-name">通讯录</span>
+      </button>
+      <button class="tab" data-tab="keypad" aria-label="拨号键盘">
+        <span class="tab-icon"><svg viewBox="0 0 30 30" fill="currentColor"><circle cx="6" cy="6" r="4.4"/><circle cx="15" cy="6" r="4.4"/><circle cx="24" cy="6" r="4.4"/><circle cx="6" cy="15" r="4.4"/><circle cx="15" cy="15" r="4.4"/><circle cx="24" cy="15" r="4.4"/><circle cx="6" cy="24" r="4.4"/><circle cx="15" cy="24" r="4.4"/><circle cx="24" cy="24" r="4.4"/></svg></span><span class="tab-name">拨号键盘</span>
+      </button>
+      <button class="tab" data-tab="voicemail" aria-label="语音留言">
+        <span class="tab-icon"><svg viewBox="0 0 32 30" fill="none" stroke="currentColor" stroke-width="2.7"><circle cx="8" cy="14" r="6.7"/><circle cx="24" cy="14" r="6.7"/><path d="M8 21h16" stroke-linecap="round"/></svg></span><span class="tab-name">语音留言</span>
+      </button>
+    </nav>
+    <div class="homebar"></div>
+    <div id="modalRoot"></div><div id="toastRoot"></div>
+    <input type="file" id="importFile" class="file-input" accept=".json,application/json">
+  </main>
+  <script>
+  (function(){'use strict';
+    const STORAGE='liquid_phone_records_v2'; // 保留旧版用户生成的记录
+    const STATUS_STORAGE='liquid_phone_status_v4';
+    const state={tab:'recent',filter:'all',edit:false,records:[],dial:'',search:'',modal:null,selected:null,editId:null,kind:'in',toastTimer:null,viewRecordId:null,detailExpanded:false,detailPane:'info',status:{autoTime:true,time:'20:06',battery:17,charging:false}};
+    const $=id=>document.getElementById(id);
+    const safe=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    const pad=n=>String(n).padStart(2,'0');
+    const todayISO=()=>{let d=new Date();return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`};
+    const isoDay=s=>{const d=new Date(s);return !isNaN(d)?`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`:'—'};
+    const vDate=s=>{const d=new Date(s);return !isNaN(d)?`${isoDay(s)} ${pad(d.getHours())}:${pad(d.getMinutes())}`:'—'};
+    const displayedNumber=s=>{s=String(s||'').trim();const numeric=s.replace(/\D/g,'');if(/^1\d{10}$/.test(numeric))return `${numeric.slice(0,3)} ${numeric.slice(3,7)} ${numeric.slice(7)}`;if(/^0\d{9,11}$/.test(numeric)){const n=/^(010|02[0-9])/.test(numeric)?3:4;return `(${numeric.slice(0,n)}) ${numeric.slice(n,n+4)} ${numeric.slice(n+4)}`.trim()}return s;};
+    const iconAvatar = baby=>baby?'<span>宝</span>':'<svg viewBox="0 0 50 50" aria-hidden="true"><circle cx="25" cy="17.2" r="9" fill="white"/><path d="M6.7 41.5c1.3-9 9.1-14.3 18.3-14.3s17 5.3 18.3 14.3A26.3 26.3 0 0 1 25 48a26.3 26.3 0 0 1-18.3-6.5Z" fill="white"/></svg>';
+    const arrow=k=>k==='out'?'<svg class="direction" viewBox="0 0 12 12"><path d="M2 10 10 2M4 2h6v6"/></svg>':'<svg class="direction" viewBox="0 0 12 12"><path d="M2 2v8h8M2 10 10 2"/></svg>';
+    // 初次打开显示空白列表。迁移旧版本时，只删除内置示例（id 为 demo-*），
+    // 保留用户自己生成、编辑或导入的其他通话记录。
+    function loadStatus(){try{const raw=localStorage.getItem(STATUS_STORAGE);if(!raw)return;const saved=JSON.parse(raw);if(saved&&typeof saved==='object'){
+      state.status.autoTime=saved.autoTime!==false;
+      if(/^([01]\d|2[0-3]):[0-5]\d$/.test(String(saved.time||'')))state.status.time=saved.time;
+      state.status.battery=Math.max(0,Math.min(100,Math.round(Number(saved.battery)||0)));
+      state.status.charging=!!saved.charging;
+    }}catch(e){}}
+    function saveStatus(){try{localStorage.setItem(STATUS_STORAGE,JSON.stringify(state.status))}catch(e){}}
+    function currentClock(){const d=new Date();return `${pad(d.getHours())}:${pad(d.getMinutes())}`}
+    function renderStatus(){
+      const val=state.status.autoTime?currentClock():state.status.time;
+      $('clock').textContent=val;
+      const b=$('battery'),level=state.status.battery;
+      $('batteryValue').textContent=String(level);
+      $('batteryFill').style.width=level+'%';
+      b.classList.toggle('battery-low',level<=20);
+      b.classList.toggle('battery-mid',level>20&&level<=35);
+      b.classList.toggle('battery-high',level>35);
+      b.classList.toggle('battery-charging',state.status.charging);
+      b.setAttribute('aria-label',`模拟电量 ${level}%，点击设置`);
+    }
+    // 兼容“手机号,四位转机码”（每行一组），同时保留原有单号码、逗号及分号批量输入方式。
+    function parsePhones(raw){
+      const parts=[];
+      String(raw||'').replace(/\r/g,'').split('\n').forEach(line=>{
+        const trimmed=line.trim();
+        if(!trimmed)return;
+        const transfer=trimmed.match(/^(\d{11})\s*([,，;；])\s*(\d{4})$/);
+        if(transfer){
+          parts.push({number:transfer[1],transferCode:transfer[3],transferDelimiter:transfer[2]});
+        }else{
+          trimmed.split(/[,，;；]+/).map(s=>s.trim()).filter(Boolean).forEach(number=>parts.push({number}));
+        }
+      });
+      return parts.map((part,index)=>({...part,index:index+1,error:validate(part.number)}));
+    }
+    // 转机码和输入分隔符是电话记录的一部分，展示/复制/导出都不丢失。
+    function fullRecordNumber(r){
+      const base=String(r.number||'').trim();
+      if(/^\d{11}\s*[,，;；]\s*\d{4}$/.test(base))return base.replace(/\s+/g,'');
+      const extension=String(r.transferCode||'');
+      return extension?`${base}${r.transferDelimiter||','}${extension}`:base;
+    }
+    function listRecordNumber(r){return r.transferCode||/^\d{11}[,，;；]\d{4}$/.test(String(r.number||''))?fullRecordNumber(r):displayedNumber(r.number)}
+    function toLocalDateTime(date){return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`}
+    function randomLocalDateTime(start,end){
+      // 使用分钟刻度：生成结果和 HTML datetime-local 一致；范围端点均可取到。
+      const first=Math.ceil(start.getTime()/60000),last=Math.floor(end.getTime()/60000);
+      const minute=first+Math.floor(Math.random()*(last-first+1));
+      return toLocalDateTime(new Date(minute*60000));
+    }
+    function updateBulkSummary(){
+      const el=$('bulkSummary'),input=$('field-number');if(!el||!input||state.modal!=='generate')return;
+      const items=parsePhones(input.value),errors=items.filter(x=>x.error),valid=items.length-errors.length;
+      el.classList.toggle('is-error',errors.length>0);
+      el.innerHTML=items.length===0?'<strong>等待输入</strong><span>可一次粘贴多行号码</span>':`<strong>${valid} 个有效号码${errors.length?` · ${errors.length} 个待修正`:''}</strong><span>${items.length>1000?'超出上限':`共 ${items.length} 行`}</span>`;
+      const submit=$('submitCall');if(submit)submit.textContent=valid>1?`生成 ${valid} 条通话记录`:'生成通话记录';
+    }
+    function load(){
+      let raw=null;
+      try{raw=localStorage.getItem(STORAGE)}catch(e){}
+      if(raw===null){try{raw=sessionStorage.getItem(STORAGE)}catch(e){}}
+      try{
+        const data=raw===null?[]:JSON.parse(raw);
+        if(!Array.isArray(data)){state.records=[];return}
+        state.records=data.filter(r=>r&&typeof r==='object'&&!String(r.id||'').startsWith('demo-'));
+        if(state.records.length!==data.length)save();
+      }catch(e){state.records=[]}
+    }
+    function save(){const raw=JSON.stringify(state.records);try{localStorage.setItem(STORAGE,raw)}catch(e){try{sessionStorage.setItem(STORAGE,raw)}catch(ignored){/* 内存仍保留当前记录 */}}}
+    function showToast(msg){const el=$('toastRoot');el.innerHTML=`<div class="toast" role="status">${safe(msg)}</div>`;clearTimeout(state.toastTimer);state.toastTimer=setTimeout(()=>el.innerHTML='',2500)}
+    function sorted(){return state.records.slice().sort((a,b)=>new Date(b.datetime)-new Date(a.datetime))}
+    function callLabel(r){return r.name||listRecordNumber(r)}
+    function renderRow(r){const missed=r.type==='missed';let label=callLabel(r);const sub=`${r.region||'手机'}${(+r.count>1)?` (${r.count})`:''}`;
+      return `<div class="call" data-id="${safe(r.id)}" role="listitem">
+        <button class="delete-button" data-delete="${safe(r.id)}" aria-label="删除">−</button>
+        <div class="avatar ${r.name==='宝宝'?'baby':''}" aria-hidden="true">${iconAvatar(r.name==='宝宝')}</div>
+        <div class="body"><div class="call-name ${missed?'missed':''} ${r.transferCode?'has-transfer':''}">${safe(label)}</div><div class="meta">${arrow(r.type)}<span class="sim">${safe(r.sim||'主号')}</span><span class="region">${safe(sub)}</span></div></div>
+        <span class="date">${safe(isoDay(r.datetime))}</span>
+        <button class="info" data-info="${safe(r.id)}" aria-label="查看通话详情"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.85"/><path d="M12 10.6v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7.3" r="1.25" fill="currentColor"/></svg></button>
+      </div>`;
+    }
+    function blank(heading,small){return `<div class="blank"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3"><path d="M10 14h28M10 24h28M10 34h19" stroke-linecap="round"/></svg><strong>${safe(heading)}</strong>${safe(small)}</div>`}
+    function renderContent(){let html='';if(state.tab==='recent'){let rs=sorted().filter(r=>state.filter==='all'||r.type==='missed');html=rs.length?rs.map(renderRow).join(''):blank('没有通话记录','点击右上角按钮，添加你的第一条模拟通话记录');}
+      if(state.tab==='favorites'){let rs=sorted().filter(r=>r.favorite);html=`<h1 class="page-title">个人收藏</h1>`+(rs.length?rs.map(renderRow).join(''):blank('暂无个人收藏','打开通话详情，即可将联系人加入个人收藏'));}
+      if(state.tab==='contacts'){let map=new Map();sorted().forEach(r=>{const key=(r.number||r.name).replace(/\s/g,'');if(!map.has(key))map.set(key,r)});let rs=[...map.values()].filter(r=>(callLabel(r)+r.region).toLowerCase().includes(state.search.toLowerCase()));html=`<h1 class="page-title">通讯录</h1><label class="searchbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="6.5"/><path d="m15 15 6 6"/></svg><input id="contactSearch" placeholder="搜索" autocomplete="off" value="${safe(state.search)}"></label>`+(rs.length?rs.map(r=>`<div class="contact-row" data-contact="${safe(r.id)}"><span class="avatar ${r.name==='宝宝'?'baby':''}">${iconAvatar(r.name==='宝宝')}</span><span>${safe(callLabel(r))}</span></div>`).join(''):blank('未找到联系人','可以在生成记录时输入联系人姓名'));}
+      if(state.tab==='keypad'){const keys=[['1',''],['2','ABC'],['3','DEF'],['4','GHI'],['5','JKL'],['6','MNO'],['7','PQRS'],['8','TUV'],['9','WXYZ'],['*',''],['0','+'],['#','']];html=`<div class="keypad-page"><div class="dial-number" id="dialScreen">${safe(state.dial)}</div><div class="dial-grid">${keys.map(k=>`<button class="dial-digit" data-digit="${k[0]}">${k[0]}<small>${k[1]||'&nbsp;'}</small></button>`).join('')}</div><div class="dial-actions"><button class="dial-action" id="dialClear">清除</button><button class="dial-green" id="dialCall" aria-label="生成呼出记录"><svg width="30" height="30" viewBox="0 0 24 24" fill="white"><path d="m6.7 2.4 3.4 3.9c.4.5.5 1.1.2 1.7L9 10.3c1.4 2.4 3.3 4.3 5.7 5.7l2.3-1.3c.6-.3 1.2-.2 1.7.2l3.9 3.4c.5.5.6 1.2.3 1.8l-1.1 2.2c-.3.6-.9.9-1.6.9C10 22.6 1.4 14 1 3.8c0-.7.3-1.3.9-1.6l2.2-1.1c.6-.3 1.3-.2 1.8.3z" transform="translate(1 0) scale(.88)"/></svg></button><button class="dial-action" id="dialBack">退格</button></div><p class="hint" style="text-align:center;margin-top:16px">绿色按钮用于生成模拟呼出记录，不会拨打真实电话。</p></div>`;}
+      if(state.tab==='voicemail'){html=`<h1 class="page-title">语音留言</h1>${blank('没有新的语音留言','这里是模拟界面，不连接运营商语音信箱')}`}
+      $('content').innerHTML=html;$('phone').classList.toggle('editing',state.edit&&state.tab==='recent');$('segmented').style.visibility=state.tab==='recent'?'visible':'hidden';$('editBtn').textContent=state.edit?'完成':'编辑';$('editBtn').style.visibility=state.tab==='recent'?'visible':'hidden';document.querySelectorAll('[data-tab]').forEach(t=>{let active=t.dataset.tab===state.tab;t.classList.toggle('active',active);if(active)t.setAttribute('aria-current','page');else t.removeAttribute('aria-current')});document.querySelectorAll('[data-filter]').forEach(t=>t.classList.toggle('selected',t.dataset.filter===state.filter));}
+    const detailTypeLabel={in:'呼入通话',out:'呼出通话',missed:'未接来电'};
+    function detailWhen(datetime){
+      const d=new Date(datetime);if(Number.isNaN(d.getTime()))return '日期未知';
+      const now=new Date(),yesterday=new Date(now.getFullYear(),now.getMonth(),now.getDate()-1);
+      const sameDay=(a,b)=>a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();
+      const day=sameDay(d,now)?'今天':sameDay(d,yesterday)?'昨天':`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+      return `${day} · ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+    function detailDateParts(datetime){
+      const d=new Date(datetime);if(Number.isNaN(d.getTime()))return {day:todayISO().slice(0,10),time:todayISO().slice(11,16)};
+      return {day:`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,time:`${pad(d.getHours())}:${pad(d.getMinutes())}`};
+    }
+    function showRecordDetail(record){
+      if(!record)return;
+      state.viewRecordId=record.id;state.detailExpanded=false;state.detailPane='info';
+      $('detailPage').hidden=false;$('phone').classList.add('detail-active');renderRecordDetail();$('detailScroll').scrollTop=0;
+    }
+    function hideRecordDetail(){
+      state.viewRecordId=null;state.detailExpanded=false;$('detailPage').hidden=true;$('detailContent').innerHTML='';
+      $('phone').classList.remove('detail-active');
+    }
+    function renderRecordDetail(){
+      const r=get(state.viewRecordId);if(!r){hideRecordDetail();return}
+      const parts=detailDateParts(r.datetime),number=listRecordNumber(r);
+      const summary=(r.type==='out'&&!Number(r.duration))?'已取消通话':detailTypeLabel[r.type]||'呼入通话';
+      const person=r.name||'未知';
+      const action=(label,id,extra='')=>`<button type="button" class="detail-action" id="${id}"><span>${label}</span>${extra}</button>`;
+      $('detailContent').innerHTML=`
+        <div class="detail-nav"><button type="button" class="detail-back" id="detailBack" aria-label="返回最近通话"><svg viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="3.1" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4 9 15l11 11"/></svg></button><button type="button" class="detail-edit" id="detailEdit">编辑</button></div>
+        <div class="detail-hero">
+          <span class="avatar ${r.name==='宝宝'?'baby':''}" aria-hidden="true">${iconAvatar(r.name==='宝宝')}</span>
+          <div class="detail-hero-name">${safe(person)}</div>
+          <div class="detail-hero-sim">SIM 卡： <span class="sim">${safe(r.sim||'主号')}</span> ${safe(r.sim||'主号')}⌄</div>
+          <div class="detail-number">${safe(number)}</div>
+          <div class="detail-switch" role="group" aria-label="联系人详情选项"><button data-detail-pane="info" class="${state.detailPane==='info'?'active':''}">详细信息</button><button data-detail-pane="voicemail" class="${state.detailPane==='voicemail'?'active':''}">语音留言</button></div>
+        </div>
+        ${state.detailPane==='info'?`
+          <div class="detail-card">
+            <div class="detail-call-head"><span>${safe(summary)}</span><time>${safe(detailWhen(r.datetime))}</time></div>
+            <div class="detail-divider"></div>
+            ${action('通话记录','detailLogToggle',`<span class="detail-chevron" aria-hidden="true">${state.detailExpanded?'⌄':'›'}</span>`)}
+            ${state.detailExpanded?`<div class="detail-divider"></div><form class="detail-nested" id="detailDateForm">
+              <div class="detail-nested-grid"><div><label for="detailDate">通话日期</label><input type="date" id="detailDate" value="${parts.day}" required></div><div><label for="detailTime">通话时间</label><input type="time" id="detailTime" value="${parts.time}" required></div></div>
+              <div style="margin-top:12px"><label for="detailType">通话类型</label><select id="detailType"><option value="in" ${r.type==='in'?'selected':''}>呼入</option><option value="out" ${r.type==='out'?'selected':''}>呼出</option><option value="missed" ${r.type==='missed'?'selected':''}>未接来电</option></select></div>
+              <p class="detail-advanced-meta">通话时长：${Number(r.duration||0)} 秒 · ${Number(r.count||1)} 次</p>
+              <button type="submit" class="detail-save">保存日期、时间和类型</button>
+            </form>`:''}
+          </div>
+          <div class="detail-card slim">${action(r.name?'修改姓名':'添加姓名','detailAddName')}</div>
+          <div class="detail-card detail-phone-card"><button type="button" class="detail-action two-lines" id="detailCopy" aria-label="复制电话号码"><span>电话</span><small>${safe(number)}</small></button></div>
+          <div class="detail-card">
+            ${action('共享联系人','detailShare')}<div class="detail-divider"></div>
+            ${action('新建联系人','detailNewContact')}<div class="detail-divider"></div>
+            ${action('添加到现有联系人','detailExisting')}
+          </div>
+          <div class="detail-card slim">${action(r.emergency?'移出紧急联系人':'添加到紧急联系人','detailEmergency')}</div>
+          <div class="detail-card slim">${action(r.blocked?'取消屏蔽联系人':'屏蔽联系人','detailBlock')}</div>
+          <p class="detail-note">模拟通话记录 · 编辑仅更新此网页，不修改手机系统通话历史或通讯录。</p>
+        `:`<div class="detail-card"><div class="detail-voicemail-empty">该通话没有语音留言记录</div></div>`}
+      `;
+    }
+    function saveDetailDate(){
+      const r=get(state.viewRecordId);if(!r)return;
+      const day=$('detailDate')?.value,time=$('detailTime')?.value,kind=$('detailType')?.value;
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(day||'')||!/^([01]\d|2[0-3]):[0-5]\d$/.test(time||'')){showToast('请输入有效的通话日期和时间');return}
+      const result=new Date(`${day}T${time}`);
+      if(Number.isNaN(result.getTime())||detailDateParts(`${day}T${time}`).day!==day){showToast('请输入有效日期');return}
+      r.datetime=`${day}T${time}`;if(['in','out','missed'].includes(kind))r.type=kind;
+      save();renderContent();const sc=$('detailScroll').scrollTop;renderRecordDetail();$('detailScroll').scrollTop=sc;showToast('通话日期、时间已更新');
+    }
+    function openModal(kind,record){state.modal=kind;state.selected=record?.id||null;state.editId=kind==='edit'?record?.id:null;state.kind=record?.type||'in';renderModal(record);}
+    function closeModal(){state.modal=null;state.selected=null;state.editId=null;$('modalRoot').innerHTML='';}
+    function field(name,label,value='',type='text',placeholder='',attr=''){return `<div class="field"><label for="field-${name}">${safe(label)}</label><input class="control" id="field-${name}" name="${name}" type="${type}" value="${safe(value)}" placeholder="${safe(placeholder)}" ${attr}></div>`}
+    function renderModal(r){let h='';if(state.modal==='form'){};
+      if(state.modal==='generate'||state.modal==='edit'){
+        const edit=state.modal==='edit';const x=r||{number:'',name:'',region:'手机',datetime:todayISO(),count:1,duration:0,sim:'主号',type:'in'};
+        h=`<div class="sheet" role="dialog" aria-modal="true" aria-label="${edit?'编辑':'生成'}通话记录"><div class="grab"></div><div class="sheet-header"><h2>${edit?'编辑通话记录':'生成通话记录'}</h2><button class="sheet-close" data-close aria-label="关闭">×</button></div><div class="sheet-content"><p class="hint">${edit?'修改后会立即更新模拟列表。':'输入手机号即可生成。数据仅保存于当前浏览器，不会写入 iPhone 系统通话记录。'}</p>
+        <form id="callForm" autocomplete="off">${edit?field('number','手机号码 / 座机号码',fullRecordNumber(x),'tel','输入电话号码或手机号,转机码','required inputmode="text" autocapitalize="off" spellcheck="false"'):`<div class="field bulk-box"><div class="section-label"><label for="field-number">手机号 / 座机号</label><span class="pill-note">支持多行批量粘贴</span></div><textarea class="control bulk-input" id="field-number" name="number" rows="4" required spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="每行一个号码，保留转机码&#10;例如：15069488015,8842&#10;15789801418,0842"></textarea><div class="bulk-summary" id="bulkSummary" aria-live="polite"><strong>等待输入</strong><span>可一次粘贴多行号码</span></div><div class="input-tip"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="8"/><path d="M10 9v5M10 5.8v.3" stroke-linecap="round"/></svg><span>每行输入「手机号,4位转机码」会按原样显示；也兼容单号码、逗号/分号分隔多个号码。最多 1000 条。</span></div></div>`}${field('name','联系人姓名（选填）',x.name,'text','不填写就显示电话号码')}
+        <div class="field"><label>通话类型</label><div class="type-select"><button type="button" data-kind="in" class="${state.kind==='in'?'on':''}">呼入</button><button type="button" data-kind="out" class="${state.kind==='out'?'on':''}">呼出</button><button type="button" data-kind="missed" class="${state.kind==='missed'?'on':''}">未接来电</button></div></div>
+        ${edit?'':`<div class="random-config" id="randomConfig"><div class="random-head"><label for="randomTimeEnable"><input type="checkbox" id="randomTimeEnable" name="randomTimeEnable" ${state.kind==='out'?'checked':''}><span>随机分配通话时间</span></label></div><div class="random-fields" id="randomFields"><div><label for="rangeStart">开始日期和时间</label><input class="control" name="rangeStart" id="rangeStart" type="datetime-local" value="${todayISO().slice(0,10)}T09:00" required></div><div><label for="rangeEnd">结束日期和时间</label><input class="control" name="rangeEnd" id="rangeEnd" type="datetime-local" value="${todayISO().slice(0,10)}T18:00" required></div></div><p class="random-caption">选择呼出时默认开启；每条记录都会在指定时间范围内随机生成，日期、时间可跨天。关闭后使用下方「日期与时间」。</p></div>`}
+        <details class="advanced" ${edit?'open':''}><summary>更多设置 <span>日期、归属地、批量生成</span></summary><div class="advanced-inner">
+          <div class="field-grid">${field('datetime','日期与时间',edit?x.datetime:todayISO(),'datetime-local','','required')}${field('region','归属地 / 备注',x.region,'text','例如：山东 济宁')}</div>
+          <div class="field-grid">${field('count','合并次数',x.count||1,'number','','min="1" max="99"')}${field('sim','SIM 标识',x.sim||'主号','text','主号')}</div>
+          <div class="field-grid">${field('duration','通话时长（秒）',x.duration||0,'number','','min="0" max="86400"')}${edit?'':field('quantity','每个号码生成次数','1','number','','min="1" max="30"')}</div>
+        </div></details></form>${edit?'':`<button type="button" class="status-entry" id="openStatus"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3.3" width="14" height="13.4" rx="3"/><path d="M6 10h8M10 6v8"/></svg>调整顶部时间与电量</button><details class="backup-details"><summary>数据管理与备份</summary><div class="backup-tools"><button class="secondary" id="exportBtn">导出 JSON 备份</button><button class="secondary" id="importBtn">导入 JSON 备份</button><button class="secondary danger" id="clearBtn">清空所有模拟记录</button></div></details>`}</div>
+        <div class="sheet-footer"><button form="callForm" class="primary" id="submitCall" type="submit">${edit?'保存修改':'生成通话记录'}</button><span class="footer-note">${edit?'保存后即时更新最近通话':'点击生成后，新记录会立即显示在最近通话顶部'}</span></div></div>`;
+      }else if(state.modal==='status'){
+        const t=state.status;
+        h=`<div class="sheet status-sheet" role="dialog" aria-modal="true" aria-label="模拟状态栏设置"><div class="grab"></div><div class="sheet-header"><h2>状态栏设置</h2><button class="sheet-close" data-close aria-label="关闭">×</button></div><div class="sheet-content">
+        <p class="status-settings-hint">这里调整的是网页内的模拟状态栏，不会修改手机系统的真实时间或电池电量。</p>
+        <div class="status-preview"><span class="preview-time" id="previewClock">${safe(t.autoTime?currentClock():t.time)}</span><div class="preview-right"><div class="cell-signal"><i></i><i></i><i></i><i></i></div><svg class="wifi" viewBox="0 0 24 20"><path d="M2 6.5Q12 -1 22 6.5M5.2 10Q12 4.2 18.8 10M8.7 13.5Q12 10.7 15.3 13.5" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.7" fill="currentColor"/></svg><div class="battery"><span class="battery-fill" id="previewFill"></span><span class="battery-value" id="previewBattery">${t.battery}</span></div></div></div>
+        <form id="statusForm" autocomplete="off">
+          <div class="status-config-group"><label>时间显示</label><div class="toggle-row"><span>跟随设备当前时间</span><input type="checkbox" id="statusAuto" name="autoTime" ${t.autoTime?'checked':''}></div><div class="field" style="margin:10px 0 0"><label for="statusTime">自定义时间</label><input type="time" class="control" id="statusTime" name="statusTime" required value="${safe(t.time)}" ${t.autoTime?'disabled':''}></div></div>
+          <div class="status-config-group"><label>电池百分比</label><div class="percent-row"><input class="battery-range" id="batteryRange" type="range" min="0" max="100" value="${t.battery}"><input class="control" type="number" id="batteryInput" name="battery" min="0" max="100" value="${t.battery}" required><span>%</span></div><div class="toggle-row" style="margin:9px 0 0"><span>显示充电状态（绿色）</span><input type="checkbox" id="charging" name="charging" ${t.charging?'checked':''}></div></div>
+        </form><p class="status-settings-hint">设置会自动保存在这个浏览器，下次打开仍然生效。</p></div><div class="sheet-footer"><button form="statusForm" class="primary" id="saveStatusBtn" type="submit">保存状态栏设置</button></div></div>`;
+      }else if(state.modal==='detail'&&r){const typ={in:'呼入',out:'呼出',missed:'未接来电'};h=`<div class="sheet" role="dialog" aria-modal="true" aria-label="通话详情"><div class="grab"></div><div class="sheet-header"><h2>通话详情</h2><button class="sheet-close" data-close aria-label="关闭">×</button></div><div class="sheet-content"><div class="detail-center"><div class="avatar ${r.name==='宝宝'?'baby':''}">${iconAvatar(r.name==='宝宝')}</div><strong>${safe(callLabel(r))}</strong><span>${safe(r.region||'手机')}</span></div>
+        <div class="detail-line"><span>号码</span><span>${safe(fullRecordNumber(r))}</span></div><div class="detail-line"><span>通话类型</span><span>${typ[r.type]||'呼入'}</span></div><div class="detail-line"><span>日期时间</span><span>${safe(vDate(r.datetime))}</span></div><div class="detail-line"><span>通话时长</span><span>${Number(r.duration||0)} 秒</span></div><div class="detail-line"><span>通话次数</span><span>${Number(r.count||1)} 次</span></div>
+        <div class="actions-row"><button id="editRecord">编辑</button><button id="favoriteRecord">${r.favorite?'取消收藏':'加入收藏'}</button><button id="deleteRecord" class="danger">删除</button></div><button class="secondary" id="copyRecord">复制号码</button></div></div>`}
+      $('modalRoot').innerHTML=`<div class="scrim" id="scrim">${h}</div>`;
+      if(state.modal==='generate')updateBulkSummary();
+      if(state.modal==='status')updateStatusPreview();
+      // 输入框不自动聚焦，避免 iOS Safari 键盘遮挡底部生成按钮。
+    }
+    function get(id){return state.records.find(r=>r.id===id)}
+    function newId(){return 'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
+    function validate(raw){const p=raw.trim();if(!p)return'请输入手机号或座机号';if(p.length>28)return'号码最多 28 个字符';if(!/^[+\d()\s-]+$/.test(p))return'号码只能包含数字、+、括号、空格和短横线';if(p.replace(/\D/g,'').length<3)return'号码至少需要 3 位数字';return''}
+    function submitForm(form){
+      const v=Object.fromEntries(new FormData(form));
+      const rawNumber=String(v.number||'');
+      const entries=parsePhones(rawNumber);
+      if(!entries.length){showToast('请先输入至少一个手机号');return false}
+      if(state.editId&&entries.length!==1){showToast('编辑时只能输入一个号码');return false}
+      const bad=entries.find(item=>item.error);
+      if(bad){showToast(`第 ${bad.index} 行：${bad.error}`);return false}
+      if(entries.length>1000){showToast('最多支持一次粘贴 1000 个号码');return false}
+      const q=state.editId?1:Math.min(30,Math.max(1,parseInt(v.quantity,10)||1));
+      if(entries.length*q>1000){showToast(`共 ${entries.length*q} 条，单次最多生成 1000 条`);return false}
+      let dt=new Date(v.datetime);
+      if(isNaN(dt)){showToast('请选择正确的日期时间');return false}
+      const randomEnabled=!state.editId&&v.randomTimeEnable==='on';
+      let rangeStart=null,rangeEnd=null;
+      if(randomEnabled){
+        rangeStart=new Date(v.rangeStart);rangeEnd=new Date(v.rangeEnd);
+        if(!v.rangeStart||!v.rangeEnd||Number.isNaN(rangeStart.getTime())||Number.isNaN(rangeEnd.getTime())){showToast('请输入有效的随机时间范围');return false}
+        if(rangeStart.getTime()>rangeEnd.getTime()){showToast('开始时间不能晚于结束时间');return false}
+        if(Math.floor(rangeStart.getTime()/60000)>Math.floor(rangeEnd.getTime()/60000)){showToast('时间范围不足一分钟');return false}
+      }
+      let c=Math.min(99,Math.max(1,parseInt(v.count,10)||1));
+      let duration=Math.min(86400,Math.max(0,parseInt(v.duration,10)||0));
+      if(state.editId){
+        const r=get(state.editId);
+        if(r)Object.assign(r,{number:entries[0].number,transferCode:entries[0].transferCode||'',transferDelimiter:entries[0].transferDelimiter||',',name:(v.name||'').trim(),region:(v.region||'').trim()||'手机',type:state.kind,datetime:v.datetime,count:c,sim:(v.sim||'').trim()||'主号',duration});
+        save();showToast('修改成功');
+      }else{
+        const newItems=[];
+        entries.forEach((entry,numberIndex)=>{
+          for(let i=0;i<q;i++){
+            // 随机模式按指定起止时刻逐条分配；非随机模式保留原有逐小时错开行为。
+            const localDate=randomEnabled?randomLocalDateTime(rangeStart,rangeEnd):toLocalDateTime(new Date(dt.getTime()-i*3600*1000));
+            newItems.push({id:newId()+numberIndex+'-'+i,number:entry.number,transferCode:entry.transferCode||'',transferDelimiter:entry.transferDelimiter||',',name:(v.name||'').trim(),region:(v.region||'').trim()||'手机',type:state.kind,datetime:localDate,count:c,sim:(v.sim||'').trim()||'主号',duration,favorite:false});
+          }
+        });
+        state.records.unshift(...newItems);save();
+        showToast(`已生成 ${newItems.length} 条通话记录`);
+      }
+      const stillDetail=Boolean(state.editId&&state.viewRecordId===state.editId);
+      state.tab='recent';state.filter='all';state.edit=false;closeModal();renderContent();
+      if(stillDetail){renderRecordDetail()}else{$('scroll').scrollTop=0}
+      return true;
+    }
+    function updateStatusPreview(){
+      if(state.modal!=='status')return;
+      const auto=$('statusAuto'),time=$('statusTime'),range=$('batteryRange'),num=$('batteryInput'),charging=$('charging');
+      if(!auto||!time||!range||!num)return;
+      time.disabled=auto.checked;
+      $('previewClock').textContent=auto.checked?currentClock():time.value||'--:--';
+      let level=Math.min(100,Math.max(0,Number(num.value)||0));
+      $('previewBattery').textContent=String(level);$('previewFill').style.width=level+'%';
+      $('previewFill').style.background=charging?.checked?'#2bc65b':level<=20?'#ff414a':level<=35?'#edbd31':'#48484d';
+    }
+    function submitStatus(form){
+      const auto=$('statusAuto'),time=$('statusTime'),batteryInput=$('batteryInput'),charge=$('charging');
+      if(!auto||!time||!batteryInput)return;
+      if(!auto.checked&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(time.value)){showToast('请输入有效时间');return}
+      const pct=Number(batteryInput.value);
+      if(!Number.isFinite(pct)||pct<0||pct>100){showToast('电量应为 0–100%');return}
+      state.status={autoTime:auto.checked,time:time.value||currentClock(),battery:Math.round(pct),charging:!!charge.checked};
+      saveStatus();renderStatus();closeModal();showToast('状态栏设置已保存');
+    }
+    function remove(id){if(!get(id))return;state.records=state.records.filter(r=>r.id!==id);save();closeModal();if(state.viewRecordId===id)hideRecordDetail();renderContent();showToast('通话记录已删除')}
+    function download(){const blob=new Blob([JSON.stringify(state.records,null,2)],{type:'application/json;charset=utf-8'});const href=URL.createObjectURL(blob);const a=document.createElement('a');a.href=href;a.download='ios26-模拟通话记录-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(href),1000);showToast('已导出 JSON 备份')}
+    function setTab(tab){if(state.viewRecordId)hideRecordDetail();state.tab=tab;state.edit=false;closeModal();renderContent();$('scroll').scrollTop=0;}
+    function updateClock(){if(state.status.autoTime)renderStatus()}
+    load();loadStatus();renderStatus();setInterval(updateClock,30000);renderContent();
+    $('editBtn').addEventListener('click',()=>{state.edit=!state.edit;renderContent()});
+    $('generatorBtn').addEventListener('click',()=>openModal('generate'));
+    $('clock').addEventListener('click',()=>openModal('status'));
+    $('battery').addEventListener('click',()=>openModal('status'));
+    $('segmented').addEventListener('click',e=>{const b=e.target.closest('[data-filter]');if(!b)return;state.filter=b.dataset.filter;renderContent();$('scroll').scrollTop=0});
+    $('dock').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)setTab(b.dataset.tab)});
+    $('content').addEventListener('click',e=>{const del=e.target.closest('[data-delete]');if(del){remove(del.dataset.delete);return}const info=e.target.closest('[data-info]');if(info){const r=get(info.dataset.info);if(r)showRecordDetail(r);return}const contact=e.target.closest('[data-contact]');if(contact){const r=get(contact.dataset.contact);if(r)showRecordDetail(r);return}if(e.target.closest('[data-digit]')){state.dial+=e.target.closest('[data-digit]').dataset.digit;const el=$('dialScreen');if(el)el.textContent=state.dial;return}if(e.target.closest('#dialClear')){state.dial='';renderContent();return}if(e.target.closest('#dialBack')){state.dial=state.dial.slice(0,-1);renderContent();return}if(e.target.closest('#dialCall')){if(validate(state.dial)){showToast('请先输入号码');return}const id=newId();state.records.unshift({id,number:state.dial,name:'',region:'手机',type:'out',datetime:todayISO(),count:1,sim:'主号',duration:0,favorite:false});save();state.dial='';setTab('recent');showToast('已生成模拟呼出记录');return}});
+    $('content').addEventListener('input',e=>{if(e.target.id==='contactSearch'){state.search=e.target.value;const p=e.target.selectionStart;renderContent();const inp=$('contactSearch');if(inp){inp.focus();inp.setSelectionRange(p,p)}}});
+    $('detailPage').addEventListener('click',async e=>{
+      const target=e.target.closest('button');if(!target)return;
+      const r=get(state.viewRecordId);if(!r)return;
+      if(target.id==='detailBack'){hideRecordDetail();return}
+      if(target.id==='detailEdit'||target.id==='detailAddName'||target.id==='detailNewContact'||target.id==='detailExisting'){
+        openModal('edit',r);return;
+      }
+      if(target.id==='detailLogToggle'){
+        const top=$('detailScroll').scrollTop;state.detailExpanded=!state.detailExpanded;
+        renderRecordDetail();$('detailScroll').scrollTop=top;return;
+      }
+      if(target.dataset.detailPane){state.detailPane=target.dataset.detailPane;renderRecordDetail();return}
+      if(target.id==='detailCopy'){
+        try{await navigator.clipboard.writeText(fullRecordNumber(r));showToast('电话号码已复制')}
+        catch(_){showToast('电话号码：'+fullRecordNumber(r))}return;
+      }
+      if(target.id==='detailShare'){
+        if(navigator.share){try{await navigator.share({title:r.name||'电话号码',text:`${r.name?r.name+' · ':''}${fullRecordNumber(r)}`})}catch(_){/* 用户取消分享 */}}
+        else{try{await navigator.clipboard.writeText(fullRecordNumber(r));showToast('已复制号码，可粘贴分享')}catch(_){showToast(fullRecordNumber(r))}}return;
+      }
+      if(target.id==='detailEmergency'){r.emergency=!r.emergency;save();renderRecordDetail();showToast(r.emergency?'已加入模拟紧急联系人':'已移出模拟紧急联系人');return}
+      if(target.id==='detailBlock'){r.blocked=!r.blocked;save();renderRecordDetail();showToast(r.blocked?'已在模拟页面屏蔽联系人':'已取消模拟屏蔽');return}
+    });
+    $('detailPage').addEventListener('submit',e=>{if(e.target.id==='detailDateForm'){e.preventDefault();saveDetailDate()}});
+    $('modalRoot').addEventListener('click',async e=>{if(e.target.closest('#openStatus')){openModal('status');return}if(e.target.closest('#saveStatusBtn')){e.preventDefault();const form=$('statusForm');if(form)submitStatus(form);return}if(e.target.closest('#submitCall')){e.preventDefault();const form=$('callForm');if(form&&(!form.reportValidity||form.reportValidity()))processCallSubmit(form);return}if(e.target.id==='scrim'||e.target.closest('[data-close]')){closeModal();return}const kind=e.target.closest('[data-kind]');if(kind){state.kind=kind.dataset.kind;const randomBox=$('randomTimeEnable');if(randomBox)randomBox.checked=state.kind==='out';document.querySelectorAll('[data-kind]').forEach(b=>b.classList.toggle('on',b.dataset.kind===state.kind));return}if(e.target.closest('#editRecord')){const r=get(state.selected);if(r)openModal('edit',r);return}if(e.target.closest('#favoriteRecord')){const r=get(state.selected);if(r){r.favorite=!r.favorite;save();openModal('detail',r);renderContent();showToast(r.favorite?'已加入收藏':'已取消收藏')}return}if(e.target.closest('#deleteRecord')){const id=state.selected;if(confirm('确定删除这条模拟通话记录吗？'))remove(id);return}if(e.target.closest('#copyRecord')){const r=get(state.selected);if(r){try{await navigator.clipboard.writeText(fullRecordNumber(r));showToast('号码已复制')}catch(ex){showToast(fullRecordNumber(r))}}return}if(e.target.closest('#exportBtn')){download();return}if(e.target.closest('#importBtn')){$('importFile').click();return}if(e.target.closest('#clearBtn')){if(confirm('确定清空所有模拟记录？此操作不可撤销，建议先导出备份。')){state.records=[];save();closeModal();renderContent();showToast('记录已清空')}return}});
+    $('modalRoot').addEventListener('invalid',e=>{if(e.target.id==='field-number'){showToast('请先填写电话号码')}else if(e.target.id==='field-datetime'){const d=e.target.closest('details');if(d)d.open=true;showToast('请输入正确的日期时间')}},true);
+    function processCallSubmit(form){
+      const button=$('submitCall');
+      if(button){button.disabled=true;button.textContent='正在生成…'}
+      try{submitForm(form)}catch(error){console.error('生成通话记录失败',error);showToast('生成失败，请检查号码与日期后重试')}
+      finally{const latest=$('submitCall');if(latest){latest.disabled=false;latest.textContent=state.editId?'保存修改':'生成通话记录'}}
+    }
+    $('modalRoot').addEventListener('input',e=>{
+      if(e.target.id==='field-number')updateBulkSummary();
+      if(e.target.id==='batteryRange'){$('batteryInput').value=e.target.value;updateStatusPreview()}
+      if(e.target.id==='batteryInput'){$('batteryRange').value=e.target.value;updateStatusPreview()}
+      if(e.target.id==='statusAuto'||e.target.id==='statusTime'||e.target.id==='charging')updateStatusPreview();
+    });
+    $('modalRoot').addEventListener('change',e=>{if(['statusAuto','statusTime','charging'].includes(e.target.id))updateStatusPreview()});
+    $('modalRoot').addEventListener('submit',e=>{
+      if(e.target.id==='callForm'){e.preventDefault();processCallSubmit(e.target)}
+      if(e.target.id==='statusForm'){e.preventDefault();submitStatus(e.target)}
+    });
+    $('importFile').addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;try{const d=JSON.parse(await f.text());if(!Array.isArray(d)||d.length>30000||d.some(x=>!x||typeof x!=='object'||!x.number||!x.datetime))throw Error('bad');if(!confirm(`导入 ${d.length} 条记录并替换当前记录？`))return;state.records=d.map(x=>({id:newId(),number:String(x.number).slice(0,28),transferCode:String(x.transferCode||'').slice(0,4),transferDelimiter:[';', '；', '，'].includes(x.transferDelimiter)?x.transferDelimiter:',',name:String(x.name||'').slice(0,80),region:String(x.region||'手机').slice(0,80),sim:String(x.sim||'主号').slice(0,12),type:['in','out','missed'].includes(x.type)?x.type:'in',datetime:String(x.datetime),count:Math.min(99,Math.max(1,Number(x.count)||1)),duration:Math.max(0,Number(x.duration)||0),favorite:!!x.favorite,emergency:!!x.emergency,blocked:!!x.blocked}));save();closeModal();setTab('recent');showToast(`导入成功，共 ${d.length} 条`)}catch(err){showToast('导入失败：请使用本程序导出的 JSON 文件')}finally{e.target.value=''}});
+    window.addEventListener('keydown',e=>{if(e.key==='Escape'){if(state.modal)closeModal();else if(state.viewRecordId)hideRecordDetail()}});
+    // 可供部署后的测试或开发者调用。它只更改模拟页面，不访问系统通话记录。
+    window.LiquidPhone={add:record=>{const parsed=parsePhones(record.number||'');if(parsed.length!==1||parsed[0].error)throw Error('请输入一个有效的号码');const r={id:newId(),number:parsed[0].number,transferCode:parsed[0].transferCode||'',transferDelimiter:parsed[0].transferDelimiter||',',name:String(record.name||''),region:String(record.region||'手机'),type:['in','out','missed'].includes(record.type)?record.type:'in',datetime:record.datetime||todayISO(),count:record.count||1,sim:record.sim||'主号',duration:record.duration||0,favorite:false};const err=validate(r.number);if(err)throw Error(err);state.records.unshift(r);save();setTab('recent');return r.id},getRecords:()=>JSON.parse(JSON.stringify(state.records)),getStatus:()=>({...state.status}),clearAll:()=>{state.records=[];save();setTab('recent')}};
+  })();
+  </script>
+
+  <script>
+    // PWA 无安装弹窗：由用户通过浏览器菜单主动添加到桌面。
+    if ('serviceWorker' in navigator && (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname))) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js', {scope:'./'}).catch(() => {});
+      }, {once:true});
+    }
+  </script>
+</body>
+</html>
